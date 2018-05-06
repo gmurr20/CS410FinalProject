@@ -1,5 +1,5 @@
 # CS410FinalProject
-##Summary
+## Summary
 For CS 410, we created a script to analyze the essays of teachers looking for approval and funding by DonorsChoose.org.  This script can make a prediction on whether their project was approved by using various NLP techniques.  For the scope of this class, we fixed our classifier to a Multi-layer Perceptron (changed from an SVM because as the feature dimensionality increased, the training took too long).  We used NLP techniques for part of speech tags, term frequencies, n-gram analysis, and LDA topic analysis and used the results for each as features in our classifier and then compared the results.
 ## Overview of functions and Implementation
 An overview of the functions can be found in the comments of the code.  Above each function, we describe how the function is used and describe its parameters and return values.  Here are the major functions documented here for our graders convenience:
