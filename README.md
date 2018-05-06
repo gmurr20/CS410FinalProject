@@ -26,7 +26,7 @@ Counting the word frequencies in the approved essays and non-approved essays and
 
 @:returns an array of 30 features which represent various word counts
 
-##Usage Documentation
+## Usage Documentation
 Due to how large the training files were for the essays, we were not able to upload it to the github repository.  If the instructor wishes to run our preprocess.py file, you can download the training data at https://www.kaggle.com/c/donorschoose-application-screening/data.  From there you can run the preprocess file as a normal python executable as long as the train.csv file is in the same directory.  Stemming the essays takes around 12 hours, and training the various classifiers can take up to 12 minutes. For this reason, we decided to upload pkl files that represent the different classifiers trained under the various NLP techniques so you can run and test our code in a timely manner.  Instructions to download our script and get it running without waiting 12 hours for the stemming of essays and preprocessing of features is as follows:
 1. Download the 4 classifier pkl files from our github repository along with the essayPrediction.py file.
 1. Download the train.csv file from https://www.kaggle.com/c/donorschoose-application-screening/data and place in the same directory.
