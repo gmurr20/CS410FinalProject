@@ -1,11 +1,11 @@
 # CS410FinalProject
 ## Summary
-For CS 410, we created a script to analyze the essays of teachers looking for approval and funding by DonorsChoose.org.  This script can make a prediction on whether their project was approved by using various NLP techniques.  For the scope of this class, we fixed our classifier to a Multi-layer Perceptron (changed from an SVM because as the feature dimensionality increased, the training took too long and the pkl file for each classifier was too large for github).  We used NLP techniques for part of speech tags, term frequencies, n-gram analysis, and LDA topic analysis and used the results for each as features in our classifier and then compared the results.
+For CS 410, we created a script to analyze the essays of teachers looking for the approval and funding of DonorsChoose.org.  This script can make a prediction on whether their project was approved by using various NLP techniques.  For the scope of this class, we fixed our classifier to a Multi-layer Perceptron (changed from an SVM because as the feature dimensionality increased, the training took too long and the pkl file for each classifier was too large for github).  We used NLP techniques for part of speech tags, term frequencies, n-gram analysis, and LDA topic analysis and used the results for each as features in our classifier and then outputted various metrics which were learned in this class.  These metrics include accuracy, precision, recall, and f1 score.
 ## Overview of functions and Implementation
 An overview of the functions can be found in the comments of the code.  Above each function, we describe how the function is used and describe its parameters and return values.  Here are the major functions documented here for our graders convenience:
 * stemEssays(essays)
 
-Stems the words in each essay.  This is only run once and the returned object is saved as a pkl file.  This function takes around 12 hours to run, as stemming each word in each essay for our data is very time consuming.  We used nltk.stem to help us stem each word.
+Stems the words in each essay.  This is only run once and the returned object is saved as a pkl file.  This function takes around an hour to run, as stemming each word in each essay for our data is very time consuming.  We used nltk.stem to help us stem each word.
 
 @:param essays - dictionary of essays with the format {project id: [essay 1, 2, 3, 4]}
 
@@ -27,12 +27,17 @@ Counting the word frequencies in the approved essays and non-approved essays and
 @:returns an array of 30 features which represent various word counts
 
 ## Usage Documentation
-Due to how large the training files were for the essays, we were not able to upload it to the github repository.  If the instructor wishes to run our preprocess.py file, you can download the training data at https://www.kaggle.com/c/donorschoose-application-screening/data.  From there you can run the preprocess file as a normal python executable as long as the train.csv file is in the same directory.  Stemming the essays takes around 12 hours, and training the various classifiers can take up to 12 minutes. For this reason, we decided to upload pkl files that represent the different classifiers trained under the various NLP techniques so you can run and test our code in a timely manner.  Instructions to download our script and get it running without waiting 12 hours for the stemming of essays and preprocessing of features is as follows:
-1. Download the 4 classifier pkl files from our github repository along with the essayPrediction.py file.
-1. Download the train.csv file from https://www.kaggle.com/c/donorschoose-application-screening/data and place in the same directory.
-1. In your terminal, run **python essayPrediction -*insert nlp technique here* -*project id***
-    1. -p will use the part of speech tagging classifier
-    1. -l will use the lda topic classifier
-    1. -n will use the bi-gram analysis classifier
-    1. -t will use the term frequency classifier
-1. The following output, should give you the prediction for the following project id along with the actual prediction.  If no project id is given, it will return the accuracy over the training and test data.
+Due to how large the original training files were, we had to trim our training data. Stemming the essays takes around an hour to run, so we recommend downloading the pkl file and using the already stemmed object instead.  Here are the steps to get our script running on your machine:
+1. Download the **essayPrediction.py** file, **obj/stemmedEssays.pkl** file, the **trimmedTrain.csv** file, and the **resources.csv.zip** file from our github repository. Make sure that each file is in the same directory, and that the **stemmedEssays.pkl** file is in its own obj directory.
+1. Unzip the resources.csv.zip file.
+1. Make sure you have the following 3rd party libaries installed for python, otherwise the script will fail.
+    1. sklearn http://scikit-learn.org/stable/install.html
+    1. nltk https://www.nltk.org/install.html
+    1. pickle https://docs.python.org/3/library/pickle.html
+    1. numpy
+1. In your terminal, run **python essayPrediction.py *-argument* *--pred***
+    1. *--pos* will use the part of speech tagging classifier
+    1. *--lda int* will use the lda topic classifier
+    1. *--ngram int* will use the bi-gram analysis classifier
+    1. *--tf* will use the term frequency classifier
+1. The following output, should give you extensive stats on how the classifier performed on the training and test data. If *--pred* is specified, a csv file of predictions will be made. In that file you can view your predictions.
