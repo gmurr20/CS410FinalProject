@@ -37,7 +37,7 @@ Due to how large the original training files were, we had to trim our training d
     1. numpy
 1. In your terminal, run **python essayPrediction.py *-argument* *--pred***
     1. *--pos* will use the part of speech tagging classifier
-    1. *--lda int* will use the lda topic classifier
-    1. *--ngram int* will use the bi-gram analysis classifier
+    1. *--lda int* will use the lda topic classifier with k topics specified
+    1. *--ngram int* will use the n-gram analysis classifier with n being specified
     1. *--tf* will use the term frequency classifier
 1. The following output, should give you extensive stats on how the classifier performed on the training and test data. If *--pred* is specified, a csv file of predictions will be made. In that file you can view your predictions.
