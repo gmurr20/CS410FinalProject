@@ -7,10 +7,23 @@ from nltk.stem import PorterStemmer
 from nltk.corpus import stopwords
 from sklearn.model_selection import train_test_split
 from sklearn.neural_network import MLPClassifier
-from sklearn.metrics import accuracy_score
+from sklearn.svm import SVC
+from sklearn.metrics import accuracy_score, classification_report
 import numpy as np
 import random
 
+'''
+Initialize for passing in arguments
+'''
+def initArgs():
+	parser = argparse.ArgumentParser(description='Predict whether teacher essays are approved in the trimmedTrain.csv file using an NLP technique')
+	parser.add_argument('--pos', action="store_true", default=False, help="use this argument to use term frequency with part of speech tagging")
+	parser.add_argument('--lda', action="store_true", default=False, help="use this argument with an integer k to use LDA topic analysis")
+	parser.add_argument('--ngram', type=int, help="use this argument with an integer n to use n-gram analysis")
+	parser.add_argument('--tf', action="store_true", default=False, help="use this argument to use term frequencies")
+	parser.add_argument('--pred', action="store_true", help="use this argument if you want a predictions file")
+	args = parser.parse_args()
+	return args
 
 '''
 Save object as a pkl file
@@ -79,9 +92,9 @@ def stemEssays(essays):
 	
 	#see if files have already been stemmed
 	if os.path.isfile('obj/stemmedEssays.pkl'):
-		print("Loading stemmed essays object")
+		print("Loading stemmed essays object (takes about a minute)")
 		stemmedEssays = load_obj('stemmedEssays')
-		print("Loading completed")
+		print("Loading done\n")
 		return stemmedEssays
 
 	print("-------------stemming essays-------------")
@@ -125,10 +138,9 @@ def trainTestSplit():
 	return X_train, X_test, y_train, y_test
 
 '''
-Counting the word frequencies in the approved essays and non-approved essays and normalizing it by the length of the corpus, we take the most common
-300 words in each category (ignoring stopwords) and take any words that are not intersecting for approved and non-approved.  For example, "student" is
-a very common word in both approved and non-approved essays, so that word is not used for our features.  We then take our feature vocabulary and transform
-the training and test data to word counts for an svm to classify
+Counting the word frequencies in the approved essays and non-approved essays and normalizing it by the length of the corpus, we take the top 1000
+words from the approved category and top 1000 words from the non-approved category and use these as our feature vocabulary.
+We then take our feature vocabulary and transform the training and test data to word counts normalized by essay for an SVM to classify.
 @:param essays- a dictionary with the format {project id: [ [list of stemmed words]1, [list of stemmed words]2, []3, []4 ]
 @:param stopSet- a set of stopwords
 @:param x_train- a list of project ids for training data
@@ -170,18 +182,10 @@ def wordCounts(essays, stopSet, x_train, y_train, x_test, resources):
 	for key, value in sorted(badCount.items(), key=lambda (k,v): (-v,k)):
 		topBad.append( key )
 
-	#only take the words that are not overlapping
-	gSet = set(topGood[:300])
-	goodSet = set(topGood[:300])
-	bSet = set(topBad[:300])
-	intersection = set([])
-	for s in gSet:
-		if s in bSet:
-			intersection.add(s)
-			goodSet.remove(s)
-			bSet.remove(s)
+	gSet = set(topGood[:1000])
+	bSet = set(topBad[:1000])
 
-	finalWords = goodSet.union(bSet)
+	finalWords = gSet.union(bSet)
 	mapToIdx = {}
 	i=0
 	for w in finalWords:
@@ -229,29 +233,138 @@ def wordCounts(essays, stopSet, x_train, y_train, x_test, resources):
 def partOfSpeechTags():
 	return
 
+#https://stackoverflow.com/questions/32441605/generating-ngrams-unigrams-bigrams-etc-from-a-large-corpus-of-txt-files-and-t
 def ngramAnalysis():
 	return
 
+#mp3 or mp2
 def ldaTopicAnalysis():
 	return
 
 def main():
+	args = initArgs()
 	stopSet = set(stopwords.words('english'))
 	resources = loadResources()
-	essays = loadEssays()
+	notStemmedEssays = loadEssays()
 	X_train, X_test, y_train, y_test = trainTestSplit()
-	essays = stemEssays(essays)
+	essays = stemEssays(notStemmedEssays)
 	
-	#term frequency first
-	transformed_train, transformed_test = wordCounts(essays, stopSet, X_train, y_train, X_test, resources)
-	print("training mlp for word counts")
-	clf = clf = MLPClassifier(solver='adam', alpha=.01, learning_rate='adaptive')
-	clf.fit(transformed_train, y_train)
-	print("training done")
-	print("MLP training accuracy", accuracy_score(y_train, clf.predict(transformed_train)))
-	print("MLP test accuracy", accuracy_score(y_test, clf.predict(transformed_test)))
-	save_obj(clf, 'termFrequencyMLP')
-	
+	fileName = 'predictions'
+	trainPredictions = None
+	testPredictions = None
+	trainProbs = None
+	testProbs = None
+	clf = None
+
+	#term frequency
+	if args.tf:
+		print "---------Term Frequency (takes about 2 minutes)---------\n"
+		transformed_train, transformed_test = wordCounts(essays, stopSet, X_train, y_train, X_test, resources)
+		clf = MLPClassifier(solver='lbfgs', activation='relu', alpha=.1, early_stopping=True)
+		clf.fit(transformed_train, y_train)
+		
+		fileName += 'Tf'
+		trainPredictions = clf.predict(transformed_train)
+		testPredictions = clf.predict(transformed_test)
+		trainProbs = clf.predict_proba(transformed_train)
+		testProbs = clf.predict_proba(transformed_test)
+
+		print "METRICS"
+		print "Training accuracy: "+str(accuracy_score(y_train, trainPredictions))
+		print "Test accuracy: "+str(accuracy_score(y_test, testPredictions))+'\n'
+		print classification_report(y_test, testPredictions)
+		print "----------------Term Frequency Completed----------------\n"
+	#part of speech
+	elif args.pos:
+		print "---------Part of Speech (takes about 2 minutes)---------\n"
+		transformed_train, transformed_test = partOfSpeechTags(essays, stopSet, X_train, y_train, X_test, resources)
+		clf = MLPClassifier(solver='lbfgs', activation='relu', alpha=.1, early_stopping=True)
+		clf.fit(transformed_train, y_train)
+
+		fileName += 'Pos'
+		trainPredictions = clf.predict(transformed_train)
+		testPredictions = clf.predict(transformed_test)
+		trainProbs = clf.predict_proba(transformed_train)
+		testProbs = clf.predict_proba(transformed_test)
+
+		print "METRICS"
+		print "Training accuracy: "+str(accuracy_score(y_train, trainPredictions))
+		print "Test accuracy: "+str(accuracy_score(y_test, testPredictions))+'\n'
+		print classification_report(y_test, testPredictions)
+		print "----------------Part of Speech Completed----------------\n"
+	#lda topic	
+	elif args.lda > 1:
+		print "------------LDA Topic (takes about 2 minutes)-----------\n"
+		transformed_train, transformed_test = ldaTopicAnalysis(essays, stopSet, X_train, y_train, X_test, resources)
+		clf = MLPClassifier(solver='lbfgs', activation='relu', alpha=.1, early_stopping=True)
+		clf.fit(transformed_train, y_train)
+
+		fileName += 'Lda'
+		trainPredictions = clf.predict(transformed_train)
+		testPredictions = clf.predict(transformed_test)
+		trainProbs = clf.predict_proba(transformed_train)
+		testProbs = clf.predict_proba(transformed_test)
+
+		print "METRICS"
+		print "Training accuracy: "+str(accuracy_score(y_train, trainPredictions))
+		print "Test accuracy: "+str(accuracy_score(y_test, testPredictions))+'\n'
+		print classification_report(y_test, testPredictions)
+		print "------------------LDA Topic Completed------------------\n"
+
+	elif args.ngram > 1:
+		print "----------Ngram Topic (takes about 2 minutes)----------\n"
+		transformed_train, transformed_test = ngramAnalysis(essays, stopSet, X_train, y_train, X_test, resources)
+		clf = MLPClassifier(solver='lbfgs', activation='relu', alpha=.1, early_stopping=True)
+		clf.fit(transformed_train, y_train)
+
+		fileName += 'Ngram'
+		trainPredictions = clf.predict(transformed_train)
+		testPredictions = clf.predict(transformed_test)
+		trainProbs = clf.predict_proba(transformed_train)
+		testProbs = clf.predict_proba(transformed_test)
+
+		print "METRICS"
+		print "Training accuracy: "+str(accuracy_score(y_train, trainPredictions))
+		print "Test accuracy: "+str(accuracy_score(y_test, testPredictions))+'\n'
+		print classification_report(y_test, testPredictions)
+		print "-------------------Ngram Completed--------------------\n"
+
+	else:
+		print "You must specify an NLP method"
+		return
+
+	if args.pred != None:
+		fileName += '.csv'
+		with open(fileName, 'w+') as file:
+			line = 'Training Data\nProject ID, Probability of 0, Probability of 1, Prediction, Actual\n'
+			file.write(line)
+			for i in range(len(X_train)):
+				pId = X_train[i]
+				prob0 = trainProbs[i][0]
+				prob1 = trainProbs[i][1]
+				pred = trainPredictions[i]
+				actual = y_train[i]
+				line = pId + ',' + str(prob0) + ',' + str(prob1) + ',' + str(pred) + ',' + str(actual) + '\n'
+				file.write(line)
+
+			line = '\nTest Data\n'
+			file.write(line)
+			for i in range(len(y_test)-1):
+				pId = X_test[i]
+				prob0 = testProbs[i][0]
+				prob1 = testProbs[i][1]
+				pred = testPredictions[i]
+				actual = y_test[i]
+				line = pId + ',' + str(prob0) + ',' + str(prob1) + ',' + str(pred) + ',' + str(actual) + '\n'
+				file.write(line)
+
+		print "Predictions file done"
+
+	return
+
+
+
+
 
 if __name__ == "__main__":
 	#python essayPrediction.py -nlpMethod
