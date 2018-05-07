@@ -9,27 +9,25 @@ from sklearn.model_selection import train_test_split
 from sklearn.neural_network import MLPClassifier
 from sklearn.metrics import accuracy_score
 import numpy as np
+import random
+
 
 '''
-Initialize for passing in arguments
-'''
-def initArgs():
-	parser = argparse.ArgumentParser(description='Predict whether teacher essays are approved in the train.csv file using an NLP technique')
-	parser.add_argument('-p', action="store_true", default=False, help="use this argument to use part of speech tagging")
-	parser.add_argument('-l', action="store_true", default=False, help="use this argument to use LDA topic")
-	parser.add_argument('-n', type=int, help="use this argument to use n-gram analysis")
-	parser.add_argument('-c', action="store_true", default=False, help="use this argument to use vocabulary word counts")
-	args = parser.parse_args()
-	return args
-
+Save object as a pkl file
 #https://stackoverflow.com/questions/19201290/how-to-save-a-dictionary-to-a-file
+'''
 def save_obj(obj, name ):
     with open('obj/'+ name + '.pkl', 'wb') as f:
         pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
 
+'''
+Load object as a pkl file
+#https://stackoverflow.com/questions/19201290/how-to-save-a-dictionary-to-a-file
+'''
 def load_obj(name ):
     with open('obj/' + name + '.pkl', 'rb') as f:
         return pickle.load(f)
+
 '''
 Loads the resources.csv file that contains the resources requested for each project
 returns a dictionary with the following format {project id : [description, quantity, price]}
@@ -47,7 +45,7 @@ def loadResources():
 			if projectId not in resources:
 				resources[projectId] = [row[1:]]
 			else:
-				resources[projectId] = resources[projectId]+[row[1:]]
+				resources[projectId] = resources[projectId]+[row[1:]]		
 	return resources
 
 '''
@@ -56,9 +54,12 @@ returns a dictionary  with the following format {project id: [essay 1, 2, 3, 4]}
 '''
 def loadEssays():
 	data = {}
-	with open('train.csv', 'rb') as csvfile:
+	rows = []
+	with open('trimmedTrain.csv', 'rb') as csvfile:
 		reader = csv.reader(csvfile)
 		skipFirstRow = True
+		badCount = 0
+		goodCount = 0
 		for row in reader:
 			if skipFirstRow:
 				skipFirstRow = False
@@ -71,14 +72,14 @@ def loadEssays():
 '''
 Stems the essays: Only run once to stem essays and saves obj as a pkl
 @:param essays - dictionary of essays with the format {project id: [essay 1, 2, 3, 4]}
-@:return a dictionary with the format {project id: [ [list of stemmed words]1, [list of stemmed words]2, []3, []4 ] }
+@:return a dictionary with the format {project id: [ list of stemmed words for essay 1, list of stemmed words for essay 2, list 3, list 4 ] }
 '''
 def stemEssays(essays):
 	stemmedEssays = {}
 	
 	#see if files have already been stemmed
 	if os.path.isfile('obj/stemmedEssays.pkl'):
-		print("Loading stemmed essays object (takes about 6 minutes)")
+		print("Loading stemmed essays object")
 		stemmedEssays = load_obj('stemmedEssays')
 		print("Loading completed")
 		return stemmedEssays
@@ -109,18 +110,18 @@ Does a 70/30 train test split on the project ids
 @:returns X_train, X_test, y_train, y_test where X is a list of project ids and y is approved/not approved
 '''
 def trainTestSplit():
-	projectIdList = []
-	approved = []
-	with open('train.csv', 'rb') as csvfile:
+	ids = []
+	yesNo = []
+	with open('trimmedTrain.csv', 'rb') as csvfile:
 		reader = csv.reader(csvfile)
 		skipFirstRow = True
 		for row in reader:
 			if skipFirstRow:
 				skipFirstRow = False
 				continue
-			projectIdList.append(row[0])
-			approved.append(int(row[15]))
-	X_train, X_test, y_train, y_test = train_test_split(projectIdList, approved, test_size=.3, random_state=0)
+			ids.append(row[0])
+			yesNo.append(int(row[len(row)-1]))
+	X_train, X_test, y_train, y_test = train_test_split(ids, yesNo, test_size=.3)
 	return X_train, X_test, y_train, y_test
 
 '''
@@ -170,9 +171,9 @@ def wordCounts(essays, stopSet, x_train, y_train, x_test, resources):
 		topBad.append( key )
 
 	#only take the words that are not overlapping
-	gSet = set(topGood[:250])
-	goodSet = set(topGood[:250])
-	bSet = set(topBad[:250])
+	gSet = set(topGood[:300])
+	goodSet = set(topGood[:300])
+	bSet = set(topBad[:300])
 	intersection = set([])
 	for s in gSet:
 		if s in bSet:
@@ -199,7 +200,9 @@ def wordCounts(essays, stopSet, x_train, y_train, x_test, resources):
 					feat[mapToIdx[word]] += 1
 		for f in feat:
 			f = 1.0*f/myLen
-		total = resources[x_id][1] * resources[x_id][1] 
+		total = 0
+		for r in resources[x_id]:
+			total += float(r[1]) * float(r[2])
 		feat[len(feat)-1] = total
 		train_features.append(feat)
 
@@ -213,7 +216,9 @@ def wordCounts(essays, stopSet, x_train, y_train, x_test, resources):
 			for word in essay:
 				if word in finalWords:
 					feat[mapToIdx[word]] += 1
-		total = resources[x_id][1] * resources[x_id][1] 
+		total = 0
+		for r in resources[x_id]:
+			total += float(r[1]) * float(r[2])
 		feat[len(feat)-1] = total
 		for f in feat:
 			f = 1.0*f/myLen
@@ -231,20 +236,22 @@ def ldaTopicAnalysis():
 	return
 
 def main():
-	args = initArgs()
 	stopSet = set(stopwords.words('english'))
-	print(stopSet)
 	resources = loadResources()
 	essays = loadEssays()
 	X_train, X_test, y_train, y_test = trainTestSplit()
 	essays = stemEssays(essays)
+	
+	#term frequency first
 	transformed_train, transformed_test = wordCounts(essays, stopSet, X_train, y_train, X_test, resources)
-	print("training mlp")
-	clf = clf = MLPClassifier(solver='lbfgs', alpha=.01, learning_rate='adaptive', early_stopping=False)
+	print("training mlp for word counts")
+	clf = clf = MLPClassifier(solver='adam', alpha=.01, learning_rate='adaptive')
 	clf.fit(transformed_train, y_train)
 	print("training done")
-	print(accuracy_score(y_train, clf.predict(transformed_train)))
-	print(accuracy_score(y_test, clf.predict(transformed_test)))
+	print("MLP training accuracy", accuracy_score(y_train, clf.predict(transformed_train)))
+	print("MLP test accuracy", accuracy_score(y_test, clf.predict(transformed_test)))
+	save_obj(clf, 'termFrequencyMLP')
+	
 
 if __name__ == "__main__":
 	#python essayPrediction.py -nlpMethod
