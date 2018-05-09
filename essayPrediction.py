@@ -3,6 +3,7 @@ import csv
 import string
 import pickle
 import os
+import nltk
 from nltk.stem import PorterStemmer
 from nltk.corpus import stopwords
 from sklearn.model_selection import train_test_split
@@ -18,7 +19,7 @@ Initialize for passing in arguments
 def initArgs():
 	parser = argparse.ArgumentParser(description='Predict whether teacher essays are approved in the trimmedTrain.csv file using an NLP technique')
 	parser.add_argument('--pos', action="store_true", default=False, help="use this argument to use term frequency with part of speech tagging")
-	parser.add_argument('--lda', action="store_true", default=False, help="use this argument with an integer k to use LDA topic analysis")
+	parser.add_argument('--lda', type=int, help="use this argument with an integer k to use LDA topic analysis")
 	parser.add_argument('--ngram', type=int, help="use this argument with an integer n to use n-gram analysis")
 	parser.add_argument('--tf', action="store_true", default=False, help="use this argument to use term frequencies")
 	parser.add_argument('--pred', action="store_true", help="use this argument if you want a predictions file")
@@ -140,13 +141,13 @@ def trainTestSplit():
 '''
 Counting the word frequencies in the approved essays and non-approved essays and normalizing it by the length of the corpus, we take the top 1000
 words from the approved category and top 1000 words from the non-approved category and use these as our feature vocabulary.
-We then take our feature vocabulary and transform the training and test data to word counts normalized by essay for an SVM to classify.
+We then take our feature vocabulary and transform the training and test data to word counts normalized by essay length for an MLP to classify.
 @:param essays- a dictionary with the format {project id: [ [list of stemmed words]1, [list of stemmed words]2, []3, []4 ]
 @:param stopSet- a set of stopwords
 @:param x_train- a list of project ids for training data
 @:param y_train- a list of 1s and 0s representing whether project was approved
 @:param x_test- a list of project ids for test data
-@:returns an array of 30 features which represent various word counts
+@:returns an array of features which represent various word counts for training and test
 '''
 def wordCounts(essays, stopSet, x_train, y_train, x_test, resources):
 	#create a dictionary with format {word: count in corpus}
@@ -229,24 +230,129 @@ def wordCounts(essays, stopSet, x_train, y_train, x_test, resources):
 		test_features.append(feat)
 	return train_features, test_features
 
-#https://pythonprogramming.net/natural-language-toolkit-nltk-part-speech-tagging/
-def partOfSpeechTags():
-	return
+'''
+Part of speech tagging is accomplished through nltk. We take the word and part of speech of the word
+and count them for the approved and non-approved categories.  We then take the top 500 from each category
+and use those for our feature vocabulary. From there, it is similar to term frequency, but this time we
+are keeping account of the part of speech as well.
+@:param notStemmedEssays- a dictionary with the format {project id: [ essay1, essay2, essay3, essay4 ]
+@:param stopSet- a set of stopwords
+@:param x_train- a list of project ids for training data
+@:param y_train- a list of 1s and 0s representing whether project was approved
+@:param x_test- a list of project ids for test data
+@:returns an array of features which represent various word counts with part of speech for training and test
+'''
+def partOfSpeechTags(notStemmedEssays, stopSet, x_train, y_train, x_test, resources):
+	try:
+		goodCount = {}
+		badCount = {}
+		i = 0
+		for xid in x_train:
+			for essay in notStemmedEssays[xid]:
+				utfEssay = essay.decode('utf-8')
+				tokenized = nltk.word_tokenize(utfEssay)
+				tagged = nltk.pos_tag(tokenized)
+				for tag in tagged:
+					if tag[0].lower() in stopSet or tag[0] in string.punctuation:
+						continue
+					newItem = (tag[0].lower(), tag[1])
+					if y_train[i] == 1:
+						if newItem not in goodCount:
+							goodCount[newItem] = 0
+						goodCount[newItem] += 1
+					else:
+						if newItem not in badCount:
+							badCount[newItem] = 0
+						badCount[newItem] += 1
+			i+=1
+			if 1.0*i/(len(X_train))*100.0 % 5 == 0:
+				print str(1.0*i/(len(X_train))*100)+'% done for first part'
+
+
+		#sort by count
+		topGood = []
+		for key, value in sorted(goodCount.items(), key=lambda (k,v): (-v,k)):
+			topGood.append( key )
+		topBad = []
+		for key, value in sorted(badCount.items(), key=lambda (k,v): (-v,k)):
+			topBad.append( key )
+
+		finalWords = []
+		for i in range(500):
+			if topGood[i] not in finalWords:
+				finalWords.append(topGood[i])
+			if topBad[i] not in finalWords:
+				finalWords.append(topBad[i])
+		
+		#transform training data
+		train_features = []
+		for x_id in x_train:
+			feat = np.zeros(len(finalWords)+1)
+			myLen = 0
+			for essay in notStemmedEssays[x_id]:
+				utfEssay = essay.decode('utf-8')
+				tokenized = nltk.word_tokenize(utfEssay)
+				tagged = nltk.pos_tag(tokenized)
+				myLen += len(essay)
+				for tag in tagged:
+					newItem = (tag[0].lower(), tag[1])
+					if newItem in finalWords:
+						feat[finalWords.index(newItem)] += 1
+			for f in feat:
+				f = 1.0*f/myLen
+			total = 0
+			for r in resources[x_id]:
+				total += float(r[1]) * float(r[2])
+			feat[len(feat)-1] = total
+			train_features.append(feat)
+
+		#transform testing data
+		test_features = []
+		for x_id in x_test:
+			feat = np.zeros(len(finalWords)+1)
+			myLen = 0
+			for essay in notStemmedEssays[x_id]:
+				utfEssay = essay.decode('utf-8')
+				tokenized = nltk.word_tokenize(utfEssay)
+				tagged = nltk.pos_tag(tokenized)
+				myLen += len(essay)
+				for tag in tagged:
+					newItem = (tag[0].lower(), tag[1])
+					if newItem in finalWords:
+						feat[finalWords.index(newItem)] += 1
+			for f in feat:
+				f = 1.0*f/myLen
+			total = 0
+			for r in resources[x_id]:
+				total += float(r[1]) * float(r[2])
+			feat[len(feat)-1] = total
+			test_features.append(feat)
+		return train_features, test_features
+
+	except Exception as e:
+		print(e)
+		print "Make sure your nltk is up to date!!!"
+		nltk.download()
+		return
 
 #https://stackoverflow.com/questions/32441605/generating-ngrams-unigrams-bigrams-etc-from-a-large-corpus-of-txt-files-and-t
 def ngramAnalysis():
+
 	return
 
 #mp3 or mp2
 def ldaTopicAnalysis():
+	
 	return
 
 def main():
 	args = initArgs()
 	stopSet = set(stopwords.words('english'))
 	resources = loadResources()
+	# {projectId: ['essay1', essay2, 3, 4]}
 	notStemmedEssays = loadEssays()
 	X_train, X_test, y_train, y_test = trainTestSplit()
+	# {projectId: [ ['essay', '1'], ] }
 	essays = stemEssays(notStemmedEssays)
 	
 	fileName = 'predictions'
@@ -255,7 +361,7 @@ def main():
 	trainProbs = None
 	testProbs = None
 	clf = None
-
+	
 	#term frequency
 	if args.tf:
 		print "---------Term Frequency (takes about 2 minutes)---------\n"
@@ -276,8 +382,8 @@ def main():
 		print "----------------Term Frequency Completed----------------\n"
 	#part of speech
 	elif args.pos:
-		print "---------Part of Speech (takes about 2 minutes)---------\n"
-		transformed_train, transformed_test = partOfSpeechTags(essays, stopSet, X_train, y_train, X_test, resources)
+		print "---------Part of Speech (takes about 30 minutes)---------\n"
+		transformed_train, transformed_test = partOfSpeechTags(notStemmedEssays, stopSet, X_train, y_train, X_test, resources)
 		clf = MLPClassifier(solver='lbfgs', activation='relu', alpha=.1, early_stopping=True)
 		clf.fit(transformed_train, y_train)
 
@@ -294,7 +400,7 @@ def main():
 		print "----------------Part of Speech Completed----------------\n"
 	#lda topic	
 	elif args.lda > 1:
-		print "------------LDA Topic (takes about 2 minutes)-----------\n"
+		print "------------LDA Topic (takes about 30 minutes)-----------\n"
 		transformed_train, transformed_test = ldaTopicAnalysis(essays, stopSet, X_train, y_train, X_test, resources)
 		clf = MLPClassifier(solver='lbfgs', activation='relu', alpha=.1, early_stopping=True)
 		clf.fit(transformed_train, y_train)
@@ -312,7 +418,7 @@ def main():
 		print "------------------LDA Topic Completed------------------\n"
 
 	elif args.ngram > 1:
-		print "----------Ngram Topic (takes about 2 minutes)----------\n"
+		print "----------Ngram Topic (takes about 10 minutes)----------\n"
 		transformed_train, transformed_test = ngramAnalysis(essays, stopSet, X_train, y_train, X_test, resources)
 		clf = MLPClassifier(solver='lbfgs', activation='relu', alpha=.1, early_stopping=True)
 		clf.fit(transformed_train, y_train)
