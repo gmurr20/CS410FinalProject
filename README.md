@@ -3,14 +3,14 @@
 For CS 410, we created a script to analyze the essays of teachers looking for the approval and funding of DonorsChoose.org.  This script can make a prediction on whether their project was approved by using various NLP techniques.  For the scope of this class, we fixed our classifier to a Multi-layer Perceptron (changed from an SVM because as the feature dimensionality increased, the training took too long and the pkl file for each classifier was too large for github).  We used NLP techniques for part of speech tags, term frequencies, n-gram analysis, and LDA topic analysis and used the results for each as features in our classifier and then outputted various metrics which were learned in this class.  These metrics include accuracy, precision, recall, and f1 score.
 ## Overview of functions and Implementation
 An overview of the functions can be found in the comments of the code.  Above each function, we describe how the function is used and describe its parameters and return values.  Here are the major functions documented here for our graders convenience:
-* stemEssays(essays)
+* **stemEssays(essays)**
 
     Stems the words in each essay.  This is only run once and the returned object is saved as a pkl file.  This function takes around an hour to run, as stemming each word in each essay for our data is very time consuming.  We used nltk.stem to help us stem each word.
 
     @:param essays - dictionary of essays with the format {project id: [essay 1, 2, 3, 4]}
 
     @:return a dictionary with the format {project id: [ list of stemmed words for essay 1, list of stemmed wordsfor essay 2, 3, 4 ] }
-* wordCounts(essays, stopSet, x_train, y_train, x_test)
+* **wordCounts(essays, stopSet, x_train, y_train, x_test)**
 
     Counting the word frequencies in the approved essays and non-approved essays and normalizing it by the length of the corpus, we take the top 1000 words from the approved category and top 1000 words from the non-approved category and use these as our feature vocabulary. We then take our feature vocabulary and transform the training and test data to word counts normalized by essay length for an MLP to  classify.
 
@@ -25,7 +25,7 @@ An overview of the functions can be found in the comments of the code.  Above ea
     @:param x_test- a list of project ids for test data
 
     @:returns an array of 30 features which represent various word counts
-* partOfSpeechTags(notStemmedEssays, stopSet, x_train, y_train, x_test, resources)
+* **partOfSpeechTags(notStemmedEssays, stopSet, x_train, y_train, x_test, resources)**
 
     Part of speech tagging is accomplished through nltk. We take the word and part of speech of the word and count them for the approved and non-approved categories.  We then take the top 500 from each category and use those for our feature vocabulary. From there, it is similar to term frequency, but this time we are keeping account of the part of speech as well.
     
