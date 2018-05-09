@@ -28,6 +28,7 @@ An overview of the functions can be found in the comments of the code.  Above ea
 * partOfSpeechTags(notStemmedEssays, stopSet, x_train, y_train, x_test, resources)
 
     Part of speech tagging is accomplished through nltk. We take the word and part of speech of the word and count them for the approved and non-approved categories.  We then take the top 500 from each category and use those for our feature vocabulary. From there, it is similar to term frequency, but this time we are keeping account of the part of speech as well.
+    
     @:param notStemmedEssays- a dictionary with the format {project id: [ essay1, essay2, essay3, essay4 ]
     
     @:param stopSet- a set of stopwords
