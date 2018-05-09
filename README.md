@@ -12,7 +12,7 @@ An overview of the functions can be found in the comments of the code.  Above ea
     @:return a dictionary with the format {project id: [ list of stemmed words for essay 1, list of stemmed wordsfor essay 2, 3, 4 ] }
 * wordCounts(essays, stopSet, x_train, y_train, x_test)
 
-    Counting the word frequencies in the approved essays and non-approved essays and normalizing it by the length of the corpus, we take the most common 300 words in each category (ignoring stopwords) and take any words that are not intersecting for approved and non-approved.  For example, "student" is a very common word in both approved and non-approved essays, so that word is not used for our features.  We then take our feature vocabulary and transform the training and test data to word counts for an MLP to classify.
+    Counting the word frequencies in the approved essays and non-approved essays and normalizing it by the length of the corpus, we take the top 1000 words from the approved category and top 1000 words from the non-approved category and use these as our feature vocabulary. We then take our feature vocabulary and transform the training and test data to word counts normalized by essay length for an MLP to  classify.
 
     @:param essays- a dictionary with the format {project id: [ [list of stemmed words]1, [list of stemmed words]2, []3, []4 ]
 
@@ -25,6 +25,20 @@ An overview of the functions can be found in the comments of the code.  Above ea
     @:param x_test- a list of project ids for test data
 
     @:returns an array of 30 features which represent various word counts
+* partOfSpeechTags(notStemmedEssays, stopSet, x_train, y_train, x_test, resources)
+
+    Part of speech tagging is accomplished through nltk. We take the word and part of speech of the word and count them for the approved and non-approved categories.  We then take the top 500 from each category and use those for our feature vocabulary. From there, it is similar to term frequency, but this time we are keeping account of the part of speech as well.
+    @:param notStemmedEssays- a dictionary with the format {project id: [ essay1, essay2, essay3, essay4 ]
+    
+    @:param stopSet- a set of stopwords
+    
+    @:param x_train- a list of project ids for training data
+    
+    @:param y_train- a list of 1s and 0s representing whether project was approved
+    
+    @:param x_test- a list of project ids for test data
+    
+    @:returns an array of features which represent various word counts with part of speech for training and test
 
 ## Usage Documentation
 Due to how large the original training files were, we had to trim our training data. Stemming the essays takes around an hour to run, so we recommend downloading the pkl file and using the already stemmed object instead.  Here are the steps to get our script running on your machine:
@@ -39,5 +53,5 @@ Due to how large the original training files were, we had to trim our training d
     1. *--pos* will use the part of speech tagging classifier
     1. *--lda int* will use the lda topic classifier with k topics specified
     1. *--ngram int* will use the n-gram analysis classifier with n being specified
-    1. *--tf* will use the term frequency classifier
+    1. *--tf* will use term frequency analysis to use as features for a classifier
 1. The following output, should give you extensive stats on how the classifier performed on the training and test data. If *--pred* is specified, a csv file of predictions will be made. In that file you can view your predictions.
