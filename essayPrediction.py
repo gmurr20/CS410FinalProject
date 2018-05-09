@@ -6,12 +6,15 @@ import os
 import nltk
 from nltk.stem import PorterStemmer
 from nltk.corpus import stopwords
+from nltk import word_tokenize
+from nltk.util import ngrams
 from sklearn.model_selection import train_test_split
 from sklearn.neural_network import MLPClassifier
 from sklearn.svm import SVC
 from sklearn.metrics import accuracy_score, classification_report
 import numpy as np
 import random
+import sys
 
 '''
 Initialize for passing in arguments
@@ -337,8 +340,30 @@ def partOfSpeechTags(notStemmedEssays, stopSet, x_train, y_train, x_test, resour
 
 #https://stackoverflow.com/questions/32441605/generating-ngrams-unigrams-bigrams-etc-from-a-large-corpus-of-txt-files-and-t
 def ngramAnalysis():
+	train_features = []
 
-	return
+	for x_id in x_train:
+		frequencies = Counter([])
+		feat = []
+		for essay in notStemmedEssays[x_id]:
+			essay_decoded = essay.decode('utf8')
+			token = nltk.word_tokenize(essay_decoded)
+			bigrams = ngrams(token, 2)
+			frequencies += Counter(bigrams)
+		train_features.append(frequencies)
+
+	test_features = []
+
+	for x_id in x_test:
+		frequencies = Counter([])
+		for essay in notStemmedEssays[x_id]:
+			essay_decoded = essay.decode('utf8')
+			token = nltk.word_tokenize(essay_decoded)
+			bigrams = ngrams(token, 2)
+			frequencies += Counter(bigrams)
+		test_features.append(frequencies)
+		
+	return train_features, test_features
 
 #mp3 or mp2
 def ldaTopicAnalysis():
