@@ -40,6 +40,40 @@ An overview of the functions can be found in the comments of the code.  Above ea
     @:param x_test- a list of project ids for test data
     
     @:returns an array of features which represent various word counts with part of speech for training and test
+* **ldaTopicAnalysis(essays, stopSet, x_train, y_train, x_test, resources, n_topics)**
+
+    Gets the topics of each essay in the train and test set to use in our MLP classifiier using nltk library for lda analysis.
+
+    @:param essays- a dictionary with the format {project id: [ [list of stemmed words]1, [list of stemmed words]2, []3, []4 ]
+
+    @:param stopSet- a set of stopwords
+
+    @:param x_train- a list of project ids for training data
+
+    @:param y_train- a list of 1s and 0s representing whether project was approved
+
+    @:param x_test- a list of project ids for test data
+
+    @:param n_topics- number of topics for lda
+
+    @:returns an array of features which represent topics
+* **ngramAnalysis(notStemmedEssays, stopSet, x_train, y_train, x_test, resources, k)**
+    
+    Performs n-gram analysis on the list of essays using nltk, and transforms the training and testing
+    
+    @:param notStemmedEssays- a dictionary with the format {project id: [ [list of stemmed words]1, [list of stemmed words]2, []3, []4 ]
+    
+    @:param stopSet- a set of stopwords
+    
+    @:param x_train- a list of project ids for training data
+    
+    @:param y_train- a list of 1s and 0s representing whether project was approved
+    
+    @:param x_test- a list of project ids for test data
+    
+    @:param k- number for n-gram
+    
+    @:returns an array of features which represent various grams
 
 ## Usage Documentation
 Due to how large the original training files were, we had to trim our training data. Stemming the essays takes around an hour to run, so we recommend downloading the pkl file and using the already stemmed object instead.  Here are the steps to get our script running on your machine:
