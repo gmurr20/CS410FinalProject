@@ -338,7 +338,14 @@ def partOfSpeechTags(notStemmedEssays, stopSet, x_train, y_train, x_test, resour
 		nltk.download()
 		return
 
-#https://stackoverflow.com/questions/32441605/generating-ngrams-unigrams-bigrams-etc-from-a-large-corpus-of-txt-files-and-t
+'''
+@:param notStemmedEssays- a dictionary with the format {project id: [ [list of stemmed words]1, [list of stemmed words]2, []3, []4 ]
+@:param stopSet- a set of stopwords
+@:param x_train- a list of project ids for training data
+@:param y_train- a list of 1s and 0s representing whether project was approved
+@:param x_test- a list of project ids for test data
+@:returns an array of features which represent various grams
+'''
 def ngramAnalysis():
 	train_features = []
 
@@ -364,11 +371,38 @@ def ngramAnalysis():
 		test_features.append(frequencies)
 		
 	return train_features, test_features
+'''
+get the topics of each essay in the train and test set to use in our SVM classifiier
+@:param essays- a dictionary with the format {project id: [ [list of stemmed words]1, [list of stemmed words]2, []3, []4 ]
+@:param stopSet- a set of stopwords
+@:param x_train- a list of project ids for training data
+@:param y_train- a list of 1s and 0s representing whether project was approved
+@:param x_test- a list of project ids for test data
+@:returns an array of features which represent topics
+'''
+def ldaTopicAnalysis(essays, stopSet, x_train, y_train, x_test, resources, num_topics):
 
-#mp3 or mp2
-def ldaTopicAnalysis():
-	
-	return
+	train_features = []
+	for x_id in x_train:
+		X_topics=[]
+		feat = np.zeros(2)
+		for essay in essays[x_id]:
+			lda_model = lda.LDA(n_topics=n_topics, n_iter=1000)
+			topics = lda_model.fit_transform(essay)
+			X_topics.append(topics)
+		feat[0]=X_topics
+	train_features.append(feat)
+
+	test_features = []
+	for x_id in x_test:
+		X_topics=[]
+		feat = np.zeros(2)
+		for essay in essays[x_id]:
+			lda_model = lda.LDA(n_topics=n_topics, n_iter=1000)
+			topics = lda_model.fit_transform(essay)
+			X_topics.append(topics)
+		feat[0]=X_topics
+	test_features.append(feat)
 
 def main():
 	args = initArgs()
