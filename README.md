@@ -1,7 +1,7 @@
 # CS410FinalProject
 ## Summary
 For CS 410, we created a script to analyze the essays of teachers looking for the approval and funding of DonorsChoose.org.  This script can make a prediction on whether their project was approved by using various NLP techniques.  For the scope of this class, we fixed our classifier to a Multi-layer Perceptron (changed from an SVM because as the feature dimensionality increased, the training took too long and the pkl file for each classifier was too large for github).  We used NLP techniques for part of speech tags, term frequencies, n-gram analysis, and LDA topic analysis and used the results for each as features in our classifier and then outputted various metrics which were learned in this class.  These metrics include accuracy, precision, recall, and f1 score.
-## Overview of functions and Implementation
+## Overview of functions
 An overview of the functions can be found in the comments of the code.  Above each function, we describe how the function is used and describe its parameters and return values.  Here are the major functions documented here for our graders convenience:
 * **stemEssays(essays)**
 
@@ -74,6 +74,9 @@ An overview of the functions can be found in the comments of the code.  Above ea
     @:param k- number for n-gram
     
     @:returns an array of features which represent various grams
+
+## Implementation and further use for extension
+Our code is pretty easy to follow along. We used nltk 3rd party library to handle most of our NLP techniques and an sklearn Multi-Layer Perceptron.  We divided each NLP technique into different functions, and they all would return the transformed training features and transformed test features as their return values.  From there, we can run the classifier and see how well it performs.  If someone wanted to add more NLP techniques, they can simply add on to what we have or create another function following a similar format.  Our script creates a predictions file so you can see how well it did for training and testing.
 
 ## Usage Documentation
 Due to how large the original training files were, we had to trim our training data. Stemming the essays takes around an hour to run, so we recommend downloading the pkl file and using the already stemmed object instead.  Here are the steps to get our script running on your machine:
