@@ -92,3 +92,6 @@ Due to how large the original training files were, we had to trim our training d
     1. *--ngram int* will use the n-gram analysis classifier with n being specified
     1. *--tf* will use term frequency analysis to use as features for a classifier
 1. The following output, should give you extensive stats on how the classifier performed on the training and test data. If *--pred* is specified, a csv file of predictions will be made. In that file you can view your predictions.
+
+## Team Contributions
+Our team divided up the work an even 50/50.  Greg Murray worked on term frequency and part of speech analysis, while Danny Shannon worked on n-gram and lda analysis.
