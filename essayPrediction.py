@@ -339,23 +339,24 @@ def partOfSpeechTags(notStemmedEssays, stopSet, x_train, y_train, x_test, resour
 		return
 
 '''
+Performs n-gram analysis on the list of essays using nltk, and transforms the training and testing
 @:param notStemmedEssays- a dictionary with the format {project id: [ [list of stemmed words]1, [list of stemmed words]2, []3, []4 ]
 @:param stopSet- a set of stopwords
 @:param x_train- a list of project ids for training data
 @:param y_train- a list of 1s and 0s representing whether project was approved
 @:param x_test- a list of project ids for test data
+@:param k- number for n-gram
 @:returns an array of features which represent various grams
 '''
-def ngramAnalysis():
+def ngramAnalysis(notStemmedEssays, stopSet, x_train, y_train, x_test, resources, k):
 	train_features = []
-
 	for x_id in x_train:
 		frequencies = Counter([])
 		feat = []
 		for essay in notStemmedEssays[x_id]:
 			essay_decoded = essay.decode('utf8')
 			token = nltk.word_tokenize(essay_decoded)
-			bigrams = ngrams(token, 2)
+			bigrams = nltk.ngrams(token, k)
 			frequencies += Counter(bigrams)
 		train_features.append(frequencies)
 
@@ -366,21 +367,23 @@ def ngramAnalysis():
 		for essay in notStemmedEssays[x_id]:
 			essay_decoded = essay.decode('utf8')
 			token = nltk.word_tokenize(essay_decoded)
-			bigrams = ngrams(token, 2)
+			bigrams = nltk.ngrams(token, k)
 			frequencies += Counter(bigrams)
 		test_features.append(frequencies)
 		
 	return train_features, test_features
+	
 '''
-get the topics of each essay in the train and test set to use in our SVM classifiier
+Gets the topics of each essay in the train and test set to use in our MLP classifiier
 @:param essays- a dictionary with the format {project id: [ [list of stemmed words]1, [list of stemmed words]2, []3, []4 ]
 @:param stopSet- a set of stopwords
 @:param x_train- a list of project ids for training data
 @:param y_train- a list of 1s and 0s representing whether project was approved
 @:param x_test- a list of project ids for test data
+@:param n_topics- number of topics for lda
 @:returns an array of features which represent topics
 '''
-def ldaTopicAnalysis(essays, stopSet, x_train, y_train, x_test, resources, num_topics):
+def ldaTopicAnalysis(essays, stopSet, x_train, y_train, x_test, resources, n_topics):
 
 	train_features = []
 	for x_id in x_train:
@@ -460,7 +463,7 @@ def main():
 	#lda topic	
 	elif args.lda > 1:
 		print "------------LDA Topic (takes about 30 minutes)-----------\n"
-		transformed_train, transformed_test = ldaTopicAnalysis(essays, stopSet, X_train, y_train, X_test, resources)
+		transformed_train, transformed_test = ldaTopicAnalysis(essays, stopSet, X_train, y_train, X_test, resources, args.lda)
 		clf = MLPClassifier(solver='lbfgs', activation='relu', alpha=.1, early_stopping=True)
 		clf.fit(transformed_train, y_train)
 
@@ -478,7 +481,7 @@ def main():
 
 	elif args.ngram > 1:
 		print "----------Ngram Topic (takes about 10 minutes)----------\n"
-		transformed_train, transformed_test = ngramAnalysis(essays, stopSet, X_train, y_train, X_test, resources)
+		transformed_train, transformed_test = ngramAnalysis(essays, stopSet, X_train, y_train, X_test, resources, args.ngram)
 		clf = MLPClassifier(solver='lbfgs', activation='relu', alpha=.1, early_stopping=True)
 		clf.fit(transformed_train, y_train)
 
